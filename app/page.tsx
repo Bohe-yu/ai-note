@@ -1,65 +1,169 @@
-import Image from "next/image";
+'use client'
+
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { Plus, Image as ImageIcon, Link2, X } from 'lucide-react'
+import Link from 'next/link'
 
 export default function Home() {
+  const router = useRouter()
+  const [content, setContent] = useState('')
+  const [sourceUrl, setSourceUrl] = useState('')
+  const [images, setImages] = useState<string[]>([])
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || images.length + files.length > 3) {
+      alert('最多上传3张图片')
+      return
+    }
+
+    for (const file of files) {
+      const formData = new FormData()
+      formData.append('file', file)
+
+      try {
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        })
+        const data = await response.json()
+        if (data.url) {
+          setImages([...images, data.url])
+        }
+      } catch (error) {
+        console.error('Upload failed:', error)
+        alert('图片上传失败')
+      }
+    }
+  }
+
+  const handleSubmit = async () => {
+    if (!content.trim()) {
+      alert('请输入内容')
+      return
+    }
+
+    setIsSubmitting(true)
+    try {
+      const response = await fetch('/api/notes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content,
+          image_urls: images,
+          source_url: sourceUrl || undefined,
+        }),
+      })
+
+      if (response.ok) {
+        setContent('')
+        setImages([])
+        setSourceUrl('')
+        router.push('/notes')
+      } else {
+        alert('保存失败')
+      }
+    } catch (error) {
+      console.error('Submit failed:', error)
+      alert('保存失败')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <div className="flex flex-col h-screen">
+      <header className="flex items-center justify-between p-4 border-b border-[#333]">
+        <h1 className="text-xl font-bold">AI Note</h1>
+        <Link href="/notes" className="text-[#7C3AED] hover:text-[#6D28D9]">
+          查看笔记
+        </Link>
+      </header>
+
+      <main className="flex-1 flex flex-col p-4 gap-4 overflow-auto">
+        <textarea
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          placeholder="输入你的想法..."
+          className="flex-1 w-full p-4 bg-[#1a1a1a] border border-[#333] rounded-lg resize-none focus:outline-none focus:border-[#7C3AED] text-white placeholder-gray-500"
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={sourceUrl}
+            onChange={(e) => setSourceUrl(e.target.value)}
+            placeholder="来源链接 (可选)"
+            className="flex-1 p-3 bg-[#1a1a1a] border border-[#333] rounded-lg focus:outline-none focus:border-[#7C3AED] text-white placeholder-gray-500"
+          />
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+
+        {images.length > 0 && (
+          <div className="flex gap-2 flex-wrap">
+            {images.map((url, index) => (
+              <div key={index} className="relative">
+                <img
+                  src={url}
+                  alt={`Uploaded ${index + 1}`}
+                  className="w-20 h-20 object-cover rounded-lg"
+                />
+                <button
+                  onClick={() => setImages(images.filter((_, i) => i !== index))}
+                  className="absolute -top-2 -right-2 bg-red-500 rounded-full p-1"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="flex gap-2">
+          <label className="flex-1 flex items-center justify-center gap-2 p-3 bg-[#1a1a1a] border border-[#333] rounded-lg cursor-pointer hover:border-[#7C3AED] transition-colors">
+            <ImageIcon size={20} />
+            <span>添加图片 ({images.length}/3)</span>
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handleImageUpload}
+              className="hidden"
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+          </label>
         </div>
+
+        <button
+          onClick={handleSubmit}
+          disabled={isSubmitting}
+          className="w-full p-4 bg-[#7C3AED] hover:bg-[#6D28D9] disabled:bg-[#333] rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
+        >
+          <Plus size={20} />
+          {isSubmitting ? '保存中...' : '保存并AI处理'}
+        </button>
       </main>
+
+      <nav className="flex border-t border-[#333]">
+        <Link
+          href="/"
+          className="flex-1 p-4 text-center text-[#7C3AED] font-semibold"
+        >
+          记录
+        </Link>
+        <Link
+          href="/notes"
+          className="flex-1 p-4 text-center text-gray-400 hover:text-white transition-colors"
+        >
+          笔记
+        </Link>
+        <Link
+          href="/stats"
+          className="flex-1 p-4 text-center text-gray-400 hover:text-white transition-colors"
+        >
+          统计
+        </Link>
+      </nav>
     </div>
-  );
+  )
 }

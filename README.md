@@ -1,36 +1,77 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AI Note
 
-## Getting Started
+A mobile-first web app for capturing and managing AI-related knowledge snippets for social media content creation.
 
-First, run the development server:
+## Tech Stack
+
+- Next.js 14 (App Router) + Tailwind CSS
+- Supabase (database + auth + file storage)
+- Claude API (claude-3-haiku-20240307 for cost efficiency)
+
+## Features
+
+- **Quick Capture**: Text input, image upload (max 3), URL input with auto-fetch title
+- **AI Processing**: Auto-generate Chinese tags and summary using Claude haiku
+- **Notes List**: Masonry card layout with tag filters and search
+- **Note Detail**: Full content display, edit capability, status toggle (draft/ready/published)
+- **Expand to Post**: Convert notes to Little Red Book (小红书) style posts
+- **Stats**: Total notes count, tag cloud, weekly chart
+
+## Setup Instructions
+
+### 1. Supabase Setup
+
+1. Create a new project at [supabase.com](https://supabase.com)
+2. Go to SQL Editor and run the schema from `supabase/schema.sql`
+3. Create a storage bucket named `note-images` and make it public
+4. Get your project URL and anon key from Settings > API
+
+### 2. Anthropic API Setup
+
+1. Get an API key from [console.anthropic.com](https://console.anthropic.com)
+2. Ensure you have access to claude-3-haiku-20240307
+
+### 3. Environment Variables
+
+Copy `.env.example` to `.env.local` and fill in your keys:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.example .env.local
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Update `.env.local` with your actual values:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+ANTHROPIC_API_KEY=your_anthropic_api_key
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 4. Run Development Server
 
-## Learn More
+```bash
+npm install
+npm run dev
+```
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Open [http://localhost:3000](http://localhost:3000) to see the app.
 
 ## Deploy on Vercel
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. Push your code to GitHub
+2. Import your project in [Vercel](https://vercel.com/new)
+3. Add environment variables in Vercel dashboard
+4. Deploy
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Database Schema
+
+The `notes` table includes:
+- `id`: UUID primary key
+- `title`: Optional title
+- `content`: Note content (required)
+- `image_urls`: Array of image URLs
+- `tags`: Array of Chinese tags (AI-generated)
+- `summary`: One-sentence summary (AI-generated, under 30 chars)
+- `source_url`: Optional source URL
+- `status`: draft/ready/published
+- `created_at`, `updated_at`: Timestamps
