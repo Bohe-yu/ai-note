@@ -4,14 +4,15 @@ import { expandToPost } from '@/lib/anthropic'
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     // Get the note
     const { data: note, error: fetchError } = await supabase
       .from('notes')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', id)
       .single()
 
     if (fetchError) {
